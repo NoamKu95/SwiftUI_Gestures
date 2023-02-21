@@ -8,14 +8,66 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+    
+    @State private var isAnimation: Bool = false
+    @State private var imageScale: CGFloat = 1
+    @State private var imageOffset: CGSize = .zero
+    
+    func resetImageState() {
+        return withAnimation(.spring()) {
+            imageScale = 1
+            imageOffset = .zero
         }
-        .padding()
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // MARK: image
+                Image("magazine-front-cover")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .cornerRadius(10)
+                    .padding()
+                    .shadow(color: .black.opacity(0.2),radius: 12, x: 2, y: 2)
+                    .opacity(isAnimation ? 1 : 0)
+                    .offset(x: imageOffset.width, y: imageOffset.height) // DRAG gesture - actually move the image
+                    .animation(.linear(duration: 1), value: isAnimation)
+                    .scaleEffect(imageScale) // actually enlarge the image
+                // MARK: DOUBLE TAP
+                    .onTapGesture(count: 2, perform: {
+                        if imageScale == 1 { // image is regular size -> zoom in
+                            withAnimation(.spring()) {
+                                imageScale = 5
+                            }
+                        } else { // image is enlarged -> return to normal
+                            resetImageState()
+                        }
+                    })
+                // MARK: DRAG gesture (catch user's dragging values)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                withAnimation(.linear(duration: 1)) {
+                                    imageOffset = value.translation
+                                }
+                            }
+                            .onEnded { _ in
+                                if imageScale <= 1 { // if user made the image smaller
+                                    resetImageState()
+                                }
+                            }
+                    )
+            }
+            .navigationTitle("Pinch & Zoom")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear(perform: {
+                withAnimation(.linear(duration: 1)) {
+                    isAnimation = true
+                }
+            })
+        }
+        .navigationViewStyle(.stack)
     }
 }
 
